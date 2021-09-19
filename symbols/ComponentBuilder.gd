@@ -330,7 +330,12 @@ class EffectComponent:
 					continue
 			if consumes_self:
 				if animation and not i in ani_arr:
-					ani_arr.push_back(i)
+					if not group and not type:
+						ani_arr.push_back(i)
+					elif i.type == type:
+						ani_arr.push_back(i)
+					elif group in i.groups:
+						ani_arr.push_back(i)
 				symbol.add_effect_for_symbol(i, i_effect)
 			else:
 				if animation:
@@ -722,7 +727,12 @@ class Buff extends EffectComponent:
 					continue
 			if consumes_self:
 				if animation and not i in ani_arr:
-					ani_arr.push_back(i)
+					if not group and not type:
+						ani_arr.push_back(i)
+					elif i.type == type:
+						ani_arr.push_back(i)
+					elif group in i.groups:
+						ani_arr.push_back(i)
 				symbol.add_effect_for_symbol(i, i_effect)
 			else:
 				if animation:
@@ -948,6 +958,11 @@ class Condition:
 	
 	
 	func get_description():
+		var a : String
+		var b : String
+		var c : String
+		var d : String
+		var e : String
 		match dict["condition"]:
 			"turns":
 				match dict["operator"]:
@@ -960,24 +975,39 @@ class Condition:
 					"every":
 						return "every <color_E14A68>%s<end> spins"%value
 			"symbol_count":
-				return "if there are %s <color_E14A68>%s<end> %s"%[dict["operator"].replace("_", " "), value, get_type_or_group(true, "or")]
+				a = "is" if value == 1 else "are"
+				b = dict["operator"].replace("_", " ")
+				c = get_type_or_group(true, "or")
+				d = " in your inventory" if dict.has("source") and dict["source"] == "inventory" else ""
+				return "if there %s %s <color_E14A68>%s<end> %s%s"%[a, b, value, c, d]
 			"corner":
-				return "if %s is%s in a corner"%["this symbol" if dict["target"] == "self" else "it", " <color_E14A68>not<end>" if invert else ""]
+				a = "this symbol" if dict["target"] == "self" else "it"
+				b = " <color_E14A68>not<end>" if invert else ""
+				return "if %s is%s in a corner"%[a, b]
 			"edge":
-				return "if %s is%s on an edge"%["this symbol" if dict["target"] == "self" else "it", " <color_E14A68>not<end>" if invert else ""]
+				a = "this symbol" if dict["target"] == "self" else "it"
+				b = " <color_E14A68>not<end>" if invert else ""
+				return "if %s is%s on an edge"%[a, b]
 			"destroyed":
 				return "when <color_E14A68>destroyed<end>"
 			"item":
-				return "if you%s have <icon_%s>"%[" do <color_E14A68>not<end>" if invert else "", dict["type"]]
+				a = " do <color_E14A68>not<end>" if invert else ""
+				b = dict["type"]
+				return "if you%s have <icon_%s>"%[a, b]
 			"adjacent":
+				a = " <color_E14A68>not<end>" if invert else ""
+				c = get_type_or_group(true, "or")
 				if dict.has("operator"):
 					match dict["operator"]:
 						"at_least":
-							return "if%s adjacent to %s%s"%[" <color_E14A68>not<end>" if invert else "", "at least <color_E14A68>%s<end>"%value if value else "", get_type_or_group(true, "or")]
+							b = "at least <color_E14A68>%s<end>"%value if value else "0"
+							return "if%s adjacent to %s%s"%[a, b, c]
 						"less_than":
-							return "if%s adjacent to %s%s"%[" <color_E14A68>not<end>" if invert else "", "fewer than <color_E14A68>%s<end>"%value if value else "0", get_type_or_group(true, "or")]
+							b = "fewer than <color_E14A68>%s<end>"%value if value else "0"
+							return "if%s adjacent to %s%s"%[a, b, c]
 						"exactly":
-							return "if%s adjacent to exactly <color_E14A68>%s<end>%s"%[" <color_E14A68>not<end>" if invert else "", value if value else "1", get_type_or_group(true, "or")]
+							b = value if value else "1"
+							return "if%s adjacent to exactly <color_E14A68>%s<end>%s"%[a, b, c]
 						"every":
-							return "if%s surrounded by %s"%[" <color_E14A68>not<end>" if invert else "", get_type_or_group(true, "or")]
-				return "if%s adjacent to %s"%[" <color_E14A68>not<end>" if invert else "", get_type_or_group(true, "or")]
+							return "if%s surrounded by %s"%[a, c]
+				return "if%s adjacent to %s"%[a, c]
