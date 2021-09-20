@@ -418,7 +418,7 @@ class Spawnable extends EffectComponent:
 					if not condition.check_condition(symbol, effect):
 						return
 		
-		symbol.add_effect_for_symbol(symbol, effect)
+		symbol.add_effect(effect)
 	
 	
 	func get_description():
@@ -607,7 +607,7 @@ class Destroyer extends EffectComponent:
 		else:
 			target_texts = target_texts.replace("?", "symbols")
 		if target_texts == "":
-			target_text = "itself"
+			target_texts = "itself"
 		desc = modsymbol.join(desc, target_texts)
 		if conditions:
 			var conditions_text := ""
@@ -796,7 +796,7 @@ class Buff extends EffectComponent:
 
 class Condition:
 	const target_types := ["self", "other"]
-	const valid_conditions := ["turns", "symbol_count", "item", "corner", "edge", "destroyed", "adjacent"]
+	const valid_conditions := ["turns", "symbol_count", "symbol_value", "item", "corner", "edge", "destroyed", "adjacent"]
 	const valid_operators := ["exactly", "at_least", "less_than", "every"]
 	var reels
 	var modsymbol
@@ -827,7 +827,7 @@ class Condition:
 			return
 		else:
 			match dict["condition"]:
-				"turns", "symbol_count":
+				"turns", "symbol_count", "symbol_value":
 					if !dict.has("operator"):
 						printerr("an operator must be given for the given condition, skipping...")
 					elif not dict["operator"] in valid_operators:
@@ -889,6 +889,22 @@ class Condition:
 						result = apply_operator("exactly", symbol_count, modsymbol.count_symbols(source))
 				result = apply_operator(dict["operator"], symbol_count, value)
 			
+			"symbol_value":
+				var compare := "value"
+				if dict.has("value_type"):
+					compare = dict["value_type"] if dict["value_type"] in ["value", "final_value", "value_bonus"] else "value"
+				
+				match dict["operator"]:
+					"exactly":
+						effect = effect.if_property_equals(compare, value)
+					"at_least":
+						effect = effect.if_property_at_least(compare, value)
+					"less_than":
+						effect = effect.if_property_less_than(compare, value)
+					_:
+						return false
+				return true
+			
 			"corner":
 				var top_left = symbol.grid_position.x == 0 and symbol.grid_position.y == 0
 				var top_right = symbol.grid_position.x == reels.reel_width - 1 and symbol.grid_position.y == 0
@@ -906,7 +922,7 @@ class Condition:
 					result = true
 			
 			"destroyed":
-				effect = effect.if_destroyed(!invert).priority()
+				effect = effect.if_destroyed(!invert).if_type(symbol.type).priority()
 				return true
 			
 			"item":
@@ -979,26 +995,46 @@ class Condition:
 						return "nyi"
 					"every":
 						return "every <color_E14A68>%s<end> spins"%value
+			
 			"symbol_count":
 				a = "is" if value == 1 else "are"
 				b = dict["operator"].replace("_", " ")
 				c = get_type_or_group(true, "or")
 				d = " in your inventory" if dict.has("source") and dict["source"] == "inventory" else ""
 				return "if there %s %s <color_E14A68>%s<end> %s%s"%[a, b, value, c, d]
+			
+			"symbol_value":
+				a = "its" if dict.has("target") and dict["target"] == "other" else "this symbol's"
+				b = dict["operator"].replace("_", " ")
+				c = ""
+				if dict.has("value_type"):
+					match dict["value_type"]:
+						"final_value":
+							c = "value"
+						"value_bonus":
+							c = "bonus value"
+						_:
+							"base value"
+				return "if %s %s is %s %s"%[a, c, b, value]
+			
 			"corner":
 				a = "this symbol" if dict["target"] == "self" else "it"
 				b = " <color_E14A68>not<end>" if invert else ""
 				return "if %s is%s in a corner"%[a, b]
+			
 			"edge":
 				a = "this symbol" if dict["target"] == "self" else "it"
 				b = " <color_E14A68>not<end>" if invert else ""
 				return "if %s is%s on an edge"%[a, b]
+			
 			"destroyed":
 				return "when <color_E14A68>destroyed<end>"
+			
 			"item":
 				a = " do <color_E14A68>not<end>" if invert else ""
 				b = dict["type"]
 				return "if you%s have <icon_%s>"%[a, b]
+			
 			"adjacent":
 				a = " <color_E14A68>not<end>" if invert else ""
 				c = get_type_or_group(true, "or")
