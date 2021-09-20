@@ -606,6 +606,8 @@ class Destroyer extends EffectComponent:
 			target_texts = target_texts.replace("?", "<all_and_%s>"%group)
 		else:
 			target_texts = target_texts.replace("?", "symbols")
+		if target_texts == "":
+			target_text = "itself"
 		desc = modsymbol.join(desc, target_texts)
 		if conditions:
 			var conditions_text := ""
@@ -762,7 +764,10 @@ class Buff extends EffectComponent:
 		desc = modsymbol.join(desc, target_texts)
 		if buff_type in ["permanent_bonus", "permanent_multiplier"]:
 			desc = modsymbol.join(desc, "permanently")
-		desc = modsymbol.join(desc, "give")
+		if target_texts == "":
+			desc = modsymbol.join(desc, "gives")
+		else:
+			desc = modsymbol.join(desc, "give")
 		if symbol_value:
 			if buff_type in ["temporary_bonus", "permanent_bonus"]:
 				desc = modsymbol.join(desc, "<icon_coin> equal to%s their%s value"%[" <color_E14A68>%sx<end>"%value if value and value > 1 else "", " base" if !final_value else ""])

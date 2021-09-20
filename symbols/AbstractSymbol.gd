@@ -16,14 +16,14 @@ func init(modloader: Reference, params):
 
 func get_description():
 	var desc = ""
+	if buffs:
+		for i in buffs:
+			desc = join(desc, i.get_description())
 	if destroys:
 		for i in destroys:
 			desc = join(desc, i.get_description())
 	if adds:
 		for i in adds:
-			desc = join(desc, i.get_description())
-	if buffs:
-		for i in buffs:
 			desc = join(desc, i.get_description())
 	if transforms:
 		for i in transforms:
