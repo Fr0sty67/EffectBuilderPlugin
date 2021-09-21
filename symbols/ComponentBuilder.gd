@@ -547,7 +547,7 @@ class Destroyer extends EffectComponent:
 	func set_buff(buff_type : String, value : int, symbol_value := false, final_value := true):
 		if buff_type in ["temporary_bonus", "temporary_multiplier", "permanent_bonus", "permanent_multiplier"]:
 			self.buff_type = buff_type
-		if value >= 1:
+		if value >= 0:
 			self.value = value
 		self.symbol_value = symbol_value
 		self.final_value = final_value

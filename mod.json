@@ -1,6 +1,6 @@
 {
     "id": "effects-builder-plugin",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "authors": ["Pudge"],
     "name": "LBaL Effects and Description Builder for ModSymbols",
     "description": "A simpler effects builder",
