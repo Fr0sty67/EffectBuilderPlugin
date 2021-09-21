@@ -47,14 +47,14 @@ func add_conditional_effects(symbol, adjacent):
 	if transforms:
 		for i in transforms:
 			if not i.new_type and not i.new_group:
-				printerr("Must supply either new_type or new_group to transforms symbols, skipping...")
+				printerr("EBP ERROR: Must supply either new_type or new_group to transforms symbols, skipping...")
 				return
 			i.construct(effect(), symbol, adjacent)
 	
 	if adds:
 		for i in adds:
 			if not i.new_type and not i.new_group:
-				printerr("Must supply either type or group to spawn symbols, skipping...")
+				printerr("EBP ERROR: Must supply either type or group to spawn symbols, skipping...")
 				return
 			i.construct(effect(), symbol, adjacent)
 

@@ -304,7 +304,7 @@ class EffectComponent:
 	
 	func construct(effect, symbol, symbols):
 		if !symbols:
-			printerr("No valid targets")
+			printerr("EBP ERROR: No valid targets")
 			return
 		
 		var ani_arr = []
@@ -398,7 +398,7 @@ class Spawnable extends EffectComponent:
 	
 	func construct(effect, symbol, adjacent):
 		if not new_type and not new_group:
-			printerr("Spawning requires either a symbol type or group, skipping...")
+			printerr("EBP ERROR: Spawning requires either a symbol type or group, skipping...")
 			return effect
 		
 		if random_index >= 0:
@@ -475,7 +475,7 @@ class Transformable extends EffectComponent:
 	
 	func construct(effect, symbol, adjacent):
 		if not new_type and not new_group:
-			printerr("Transforms requires either a symbol type or group, skipping...")
+			printerr("EBP ERROR: Transforms requires either a symbol type or group, skipping...")
 			return
 		
 		if type:
@@ -659,7 +659,7 @@ class Buff extends EffectComponent:
 	
 	
 	func set_value(value : int):
-		if value >= 1:
+		if value >= 0:
 			self.value = value
 		return self
 	
@@ -703,7 +703,7 @@ class Buff extends EffectComponent:
 			symbols.push_back(i)
 		
 		if !symbols:
-			printerr("No valid targets")
+			printerr("EBP ERROR: No valid targets")
 			return
 		
 		var ani_arr = []
@@ -814,35 +814,35 @@ class Condition:
 	func parse(dict : Dictionary):
 		if dict.has("target"):
 			if not dict["target"] in target_types:
-				printerr("given target '%s' is not one of the accepted targets: %s"%[dict["target"], target_types])
+				printerr("EBP ERROR: Given target '%s' is not one of the accepted targets: %s"%[dict["target"], target_types])
 				return
 			else:
 				self.target = dict["target"]
 		
 		if not dict.has("condition"):
-			printerr("requires a condition to be given, skipping...")
+			printerr("EBP ERROR: Requires a condition to be given, skipping...")
 			return
 		elif not dict["condition"] in valid_conditions:
-			printerr("given condition '%s' is not one of the accepted conditions: %s"%[dict["condition"], valid_conditions])
+			printerr("EBP ERROR: Given condition '%s' is not one of the accepted conditions: %s"%[dict["condition"], valid_conditions])
 			return
 		else:
 			match dict["condition"]:
 				"turns", "symbol_count", "symbol_value":
 					if !dict.has("operator"):
-						printerr("an operator must be given for the given condition, skipping...")
+						printerr("EBP ERROR: An operator must be given for the given condition, skipping...")
 					elif not dict["operator"] in valid_operators:
-						printerr("given operator '%s' is not one of the accepted conditions: %s"%[dict["operator"], valid_operators])
+						printerr("EBP ERROR: Given operator '%s' is not one of the accepted conditions: %s"%[dict["operator"], valid_operators])
 						return
 					if dict["condition"] == "symbol_count" and not dict.has("type") and not dict.has("group"):
-						printerr("a type or group must be given for condition 'symbol_count'")
+						printerr("EBP ERROR: A type or group must be given for condition 'symbol_count'")
 						return
 				"item":
 					if !dict.has("type"):
-						printerr("an item type must be given for condition 'item'")
+						printerr("EBP ERROR: An item type must be given for condition 'item'")
 						return
 				"adjacent":
 					if !dict.has("type") and !dict.has("group"):
-						printerr("a type or group must be given for condition 'adjacent'")
+						printerr("EBP ERROR: A type or group must be given for condition 'adjacent'")
 						return
 		
 		if dict.has("value"):
