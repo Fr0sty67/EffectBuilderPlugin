@@ -1,5 +1,5 @@
 extends "res://modloader/ModSymbol.gd"
-const builder = preload("res://effects-builder-plugin/symbols/ComponentBuilder.gd")
+const cbldr = preload("res://effects-builder-plugin/symbols/ComponentBuilder.gd")
 
 var rng := RandomNumberGenerator.new()
 var destroys : Array = [] # of Destroyer
@@ -60,20 +60,20 @@ func add_conditional_effects(symbol, adjacent):
 
 
 func destroy():
-	return builder.Destroyer.new(self)
+	return cbldr.Destroyer.new(self)
 
 
 func add():
-	return builder.Spawnable.new(self)
+	return cbldr.Spawnable.new(self)
 
 
 func transform():
-	return builder.Transformable.new(self)
+	return cbldr.Transformable.new(self)
 
 
 func buff():
-	return builder.Buff.new(self)
+	return cbldr.Buff.new(self)
 
 
 func condition():
-	return builder.Condition.new(self)
+	return cbldr.Condition.new(self)

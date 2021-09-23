@@ -1,254 +1,18 @@
 extends "res://modloader/utils.gd"
-
-class TargetBuilder:
-	var modsymbol
-	const valid_keys = [
-		"adjacent", "row", "column", "all",
-		"self", "corners", "edges", "above", "below",
-		"left", "right", "diagonal"
-	]
-	const valid_operators = [true, false]
-	const descriptions = {
-		"adjacent" : {
-			"text" : "adjacent ?",
-			"nega" : "non-adjacent ?",
-		},
-		"row" : {
-			"text" : "? in the same row",
-			"nega" : "? not in the same row",
-		},
-		"column" : {
-			"text" : "? in the same column",
-			"nega" : "? not in the same column",
-		},
-		"all" : {
-			"text" : "all ?",
-			"nega" : "none of (wtf are you doing) ?",
-		},
-		"self" : {
-			"text" : "",
-			"nega" : "all other ?",
-		},
-		"corners" : {
-			"text" : "? in a corner",
-			"nega" : "? not in a corner",
-		},
-		"edges" : {
-			"text" : "? on an edge",
-			"nega" : "? not on an edge",
-		},
-		"above" : {
-			"text" : "? above this symbol",
-			"nega" : "? not above this symbol",
-		},
-		"below" : {
-			"text" : "? below this symbol",
-			"nega" : "? not below this symbol",
-		},
-		"left" : {
-			"text" : "? to the left of this symbol",
-			"nega" : "? not to the left of this symbol",
-		},
-		"right" : {
-			"text" : "? to the right of this symbol",
-			"nega" : "? not to the right of this symbol",
-		},
-		"diagonal" : {
-			"text" : "? diagonally from this symbol",
-			"nega" : "? not diagonally from this symbol",
-		}
-	}
-	var cleansed_targets: Dictionary
-	var reels
-	
-	
-	func _init(modsymbol):
-		self.modsymbol = modsymbol
-		reels = modsymbol.modloader.globals.reels
-	
-	
-	func parse(target_dict : Dictionary):
-		for key in target_dict.keys():
-			if not key in valid_keys:
-				push_error("Invalid key value '%s', expected one of %s"%[key, valid_keys])
-				return
-			if target_dict[key].has("not"):
-				if not target_dict[key]["not"] in valid_operators:
-					push_error("Invalid operator '%s', expected one of %s"%[target_dict[key]["not"], valid_operators])
-					return
-			else:
-				target_dict[key]["not"] = false
-		cleansed_targets = target_dict
-	
-	
-	func build(symbol, adjacent):
-		var symbols := []
-		for key in cleansed_targets.keys():
-			var inner := []
-			match key:
-				"adjacent":
-					inner = adjacent
-				"row":
-					inner = get_row(symbol, cleansed_targets[key]["include_self"])
-				"column":
-					inner = get_column(symbol, cleansed_targets[key]["include_self"])
-				"all":
-					inner = get_all(symbol, cleansed_targets[key]["include_self"])
-				"self":
-					inner.push_back(symbol)
-				"corners":
-					inner = get_corners()
-				"edges":
-					inner = get_edges()
-				"above":
-					inner = get_above(symbol)
-				"below":
-					inner = get_below(symbol)
-				"left":
-					inner = get_left(symbol)
-				"right":
-					inner = get_right(symbol)
-				"diagonal":
-					inner = get_diagonals(symbol)
-			if cleansed_targets[key]["not"] == true:
-				inner = modsymbol.subtract(get_all(symbol, true), inner)
-			symbols = modsymbol.merge(symbols, inner)
-		return symbols
-	
-	
-	func get_row(symbol, include_self = false) -> Array:
-		var symbols := []
-		for x in range(reels.reel_width):
-			if x == symbol.grid_position.x and !include_self:
-				continue
-			symbols.push_back(reels.displayed_icons[symbol.grid_position.y][x])
-		return symbols
-	
-	
-	func get_column(symbol, include_self = false) -> Array:
-		var symbols := []
-		for y in range(reels.reel_height):
-			if y == symbol.grid_position.y and !include_self:
-				continue
-			symbols.push_back(reels.displayed_icons[y][symbol.grid_position.x])
-		return symbols
-	
-	
-	func get_left(symbol) -> Array:
-		var symbols := []
-		for x in range(reels.reel_width):
-			if x > symbol.grid_position.x:
-				continue
-			symbols.push_back(reels.displayed_icons[symbol.grid_position.y][x])
-		return symbols
-	
-	
-	func get_right(symbol) -> Array:
-		var symbols := []
-		for x in range(reels.reel_width):
-			if x < symbol.grid_position.x:
-				continue
-			symbols.push_back(reels.displayed_icons[symbol.grid_position.y][x])
-		return symbols
-	
-	
-	func get_above(symbol) -> Array:
-		var symbols := []
-		for y in range(reels.reel_height):
-			if y > symbol.grid_position.y:
-				continue
-			symbols.push_back(reels.displayed_icons[y][symbol.grid_position.x])
-		return symbols
-	
-	
-	func get_below(symbol) -> Array:
-		var symbols := []
-		for y in range(reels.reel_height):
-			if y < symbol.grid_position.y:
-				continue
-			symbols.push_back(reels.displayed_icons[y][symbol.grid_position.x])
-		return symbols
-	
-	
-	func get_diagonals(symbol):
-		var symbols = []
-		for direction in [1,2,3,4]:
-			var x_mod = 0
-			var y_mod = 0
-			var x_diff = 0
-			var y_diff = 0
-			match int(direction):
-				1:
-					x_diff = -1
-					y_diff = -1
-				2:
-					x_diff = 1
-					y_diff = -1
-				3:
-					x_diff = -1
-					y_diff = 1
-				4:
-					x_diff = 1
-					y_diff = 1
-			x_mod += x_diff
-			y_mod += y_diff
-			while symbol.grid_position.x + x_mod >= 0 and symbol.grid_position.y + y_mod >= 0 and symbol.grid_position.x + x_mod <= reels.reel_width - 1 and symbol.grid_position.y + y_mod <= reels.reel_height - 1:
-				symbols.push_back(reels.displayed_icons[symbol.grid_position.y + y_mod][symbol.grid_position.x + x_mod])
-				x_mod += x_diff
-				y_mod += y_diff
-		return symbols
-	
-	
-	func get_all(symbol, include_self = false) -> Array:
-		var symbols := []
-		for row in reels.displayed_icons:
-			symbols += row
-		if !include_self:
-			symbols.erase(symbol)
-		return symbols
-	
-	
-	func get_corners() -> Array:
-		var symbols := []
-		symbols.push_back(reels.displayed_icons[0][0])
-		symbols.push_back(reels.displayed_icons[0][reels.reel_width -1])
-		symbols.push_back(reels.displayed_icons[reels.reel_height - 1][0])
-		symbols.push_back(reels.displayed_icons[reels.reel_height - 1][reels.reel_width - 1])
-		return symbols
-	
-	
-	func get_edges() -> Array:
-		var symbols := []
-		for row in reels.displayed_icons:
-			for s in row:
-				if s.grid_position.y == 0 \
-				or s.grid_position.x == 0 \
-				or s.grid_position.y == reels.reel_height - 1 \
-				or s.grid_position.x == reels.reel_width -1:
-					symbols.push_back(s)
-		return symbols
-	
-	
-	func get_description():
-		var desc := ""
-		for key in cleansed_targets.keys():
-			var inner : String = descriptions[key]["text"] if cleansed_targets[key]["not"] == false else descriptions[key]["nega"]
-			if !desc:
-				desc = inner
-			else:
-				desc += " or " + inner.replace("? ", "")
-		return desc
+const cmgr = preload("res://effects-builder-plugin/symbols/ConditionManager.gd")
+const tbldr = preload("res://effects-builder-plugin/symbols/TargetBuilder.gd")
 
 
 class EffectComponent:
 	var modsymbol
 	var type : String
 	var group : String
-	var target : TargetBuilder
+	var target_group
 	var targets : int
 	var random_targeting := true
 	var animation : String
 	var sfx_index : int = 0
+	var simultaneous := false
 	var random_index := -1
 	var consumes_self := false
 	var conditions := [] # of conditions
@@ -256,8 +20,7 @@ class EffectComponent:
 	
 	func _init(modsymbol):
 		self.modsymbol = modsymbol
-		self.target = TargetBuilder.new(modsymbol)
-		self.target.parse({"adjacent": {"not" : false}})
+		self.target_group = tbldr.parse(modsymbol, {"adjacent": {"not" : false}})
 	
 	
 	func set_type(type : String):
@@ -271,10 +34,15 @@ class EffectComponent:
 	
 	
 	func set_target(target_dict : Dictionary, number_of := 0, random := true):
-		self.target.parse(target_dict)
+		self.target_group = tbldr.parse(modsymbol, target_dict)
 		if number_of > 0:
 			self.targets = number_of
 		self.random_targeting = random
+		return self
+	
+	
+	func simultaneous():
+		self.simultaneous = true
 		return self
 	
 	
@@ -296,9 +64,11 @@ class EffectComponent:
 	
 	
 	func add_condition(dict : Dictionary):
-		var condition = Condition.new(modsymbol)
-		condition.parse(dict)
-		self.conditions.push_back(condition)
+		var condition = cmgr.parse(modsymbol, dict)
+		if condition:
+			self.conditions.push_back(condition)
+		else:
+			printerr("EBP ERROR: Condition could not be created from parameters")
 		return self
 	
 	
@@ -314,21 +84,22 @@ class EffectComponent:
 		
 		if conditions:
 			for condition in conditions:
-				if condition.target == "self":
+				if condition.target in ["self", "any"]:
 					if not condition.check_condition(symbol, effect):
 						return
 		
 		for i in symbols:
-			var i_effect = modsymbol.effect(effect.effect_dictionary.duplicate())
+			var i_effect = modsymbol.effect(effect.effect_dictionary.duplicate(true))
 			if conditions:
 				var check_passed := true
 				for condition in conditions:
 					if condition.target == "other":
-						if not condition.check_condition(i, i_effect):
+						if not condition.check_condition(symbol, i_effect, i):
 							check_passed = false
 				if !check_passed:
 					continue
-			if consumes_self:
+			
+			if consumes_self or simultaneous:
 				if animation and not i in ani_arr:
 					if not group and not type:
 						ani_arr.push_back(i)
@@ -336,16 +107,18 @@ class EffectComponent:
 						ani_arr.push_back(i)
 					elif group in i.groups:
 						ani_arr.push_back(i)
-				symbol.add_effect_for_symbol(i, i_effect)
 			else:
 				if animation:
 					i_effect = i_effect.animate(animation, sfx_index, modsymbol.merge([symbol], [i]))
-				symbol.add_effect_for_symbol(i, i_effect)
-		if consumes_self and ani_arr.size() > 0:
+			
+			symbol.add_effect_for_symbol(i, i_effect)
+		
+		if (consumes_self or simultaneous) and ani_arr.size() > 0:
 			var l_effect = modsymbol.effect()
 			if animation:
 				l_effect = l_effect.animate(animation, sfx_index, modsymbol.merge([symbol], ani_arr))
-			l_effect = l_effect.set_destroyed()
+			if consumes_self:
+				l_effect = l_effect.set_destroyed()
 			symbol.add_effect_for_symbol(symbol, l_effect)
 	
 	
@@ -357,7 +130,7 @@ class EffectComponent:
 	
 	
 	func get_targets(symbol, adjacent):
-		var symbols : Array = target.build(symbol, adjacent)
+		var symbols : Array = target_group.build(symbol, adjacent)
 		return symbols
 
 
@@ -414,7 +187,7 @@ class Spawnable extends EffectComponent:
 		
 		if conditions:
 			for condition in conditions:
-				if condition.target == "self":
+				if condition.target in ["self", "any"]:
 					if not condition.check_condition(symbol, effect):
 						return
 		
@@ -480,8 +253,8 @@ class Transformable extends EffectComponent:
 		
 		if type:
 			effect = effect.if_type(type)
-		else:
-			effect = effect.if_group(group)	
+		elif group:
+			effect = effect.if_group(group)
 		
 		if new_type:
 			effect = effect.change_type(new_type)
@@ -491,7 +264,7 @@ class Transformable extends EffectComponent:
 		var t : Array = get_targets(symbol, adjacent)
 		var symbols := []
 		for i in t:
-			if i.type == "empty" and !include_empties:
+			if i.type == "empty" and !include_empties and type != "empty":
 				continue
 			if i.type != new_type:
 				symbols.push_back(i)
@@ -505,7 +278,7 @@ class Transformable extends EffectComponent:
 			desc = modsymbol.join(desc, "transform")
 		else:
 			desc = "transforms"
-		var target_texts : String = target.get_description()
+		var target_texts : String = target_group.get_description()
 		if type:
 			target_texts = target_texts.replace("?", "<icon_%s>"%type)
 		elif group:
@@ -547,7 +320,7 @@ class Destroyer extends EffectComponent:
 	func set_buff(buff_type : String, value : int, symbol_value := false, final_value := true):
 		if buff_type in ["temporary_bonus", "temporary_multiplier", "permanent_bonus", "permanent_multiplier"]:
 			self.buff_type = buff_type
-		if value >= 0:
+		if value >= 1:
 			self.value = value
 		self.symbol_value = symbol_value
 		self.final_value = final_value
@@ -585,11 +358,11 @@ class Destroyer extends EffectComponent:
 					b_effect = b_effect.multiply_permanent_multiplier(value)
 			
 			for i in symbols:
-				var i_effect = modsymbol.effect(b_effect.effect_dictionary.duplicate())
+				var i_effect = modsymbol.effect(b_effect.effect_dictionary.duplicate(true))
+				i_effect = i_effect.if_type(i.type)
 				if symbol_value:
 					i_effect.effect_dictionary.erase("diff")
 					i_effect = i_effect.dynamic_symbol_value(i, value, final_value)
-					print(i_effect.effect_dictionary)
 				symbol.add_effect_for_symbol(i, i_effect)
 	
 	
@@ -599,7 +372,7 @@ class Destroyer extends EffectComponent:
 			desc = modsymbol.join(desc, "<color_E14A68>destroy<end>")
 		else:
 			desc = "<color_E14A68>Destroys<end>"
-		var target_texts : String = target.get_description()
+		var target_texts : String = target_group.get_description()
 		if type:
 			target_texts = target_texts.replace("?", "<icon_%s>"%type)
 		elif group:
@@ -698,7 +471,7 @@ class Buff extends EffectComponent:
 		var t : Array = get_targets(symbol, adjacent)
 		var symbols := []
 		for i in t:
-			if i.type == "empty" and !include_empties:
+			if i.type == "empty" and !include_empties and type != "empty":
 				continue
 			symbols.push_back(i)
 		
@@ -713,48 +486,55 @@ class Buff extends EffectComponent:
 		
 		if conditions:
 			for condition in conditions:
-				if condition.target == "self":
+				if condition.target in ["self", "any"]:
 					if not condition.check_condition(symbol, effect):
 						return
 		
 		for i in symbols:
-			var i_effect = modsymbol.effect(effect.effect_dictionary.duplicate())
+			var i_effect = modsymbol.effect(effect.effect_dictionary.duplicate(true))
 			if conditions:
 				var check_passed := true
 				for condition in conditions:
 					if condition.target == "other":
-						if not condition.check_condition(i, i_effect):
+						if not condition.check_condition(symbol, i_effect, i):
 							check_passed = false
 				if !check_passed:
 					continue
-			if consumes_self:
+			
+			if symbol_value:
+				i_effect.effect_dictionary.erase("diff")
+				i_effect = i_effect.dynamic_symbol_value(i, value, final_value)
+			
+			if not type and not group:
+				i_effect = i_effect.if_type(i.type)
+			
+			if consumes_self or simultaneous:
 				if animation and not i in ani_arr:
-					if not group and not type:
+					if not type and not group:
 						ani_arr.push_back(i)
 					elif i.type == type:
 						ani_arr.push_back(i)
 					elif group in i.groups:
 						ani_arr.push_back(i)
-				symbol.add_effect_for_symbol(i, i_effect)
 			else:
 				if animation:
 					i_effect = i_effect.animate(animation, sfx_index, modsymbol.merge([symbol], [i]))
-				if symbol_value:
-					i_effect.effect_dictionary.erase("diff")
-					i_effect = i_effect.dynamic_symbol_value(i, value, final_value)
-				symbol.add_effect_for_symbol(i, i_effect)
-		if consumes_self and ani_arr.size() > 0:
+			
+			symbol.add_effect_for_symbol(i, i_effect)
+			
+		if (consumes_self or simultaneous) and ani_arr.size() > 0:
 			var l_effect = modsymbol.effect()
 			if animation:
 				l_effect = l_effect.animate(animation, sfx_index, modsymbol.merge([symbol], ani_arr))
-			l_effect = l_effect.set_destroyed()
+			if consumes_self:
+				l_effect = l_effect.set_destroyed()
 			symbol.add_effect_for_symbol(symbol, l_effect)
 	
 	func get_description():
 		var desc : String = .get_description()
 		if random_index >= 0:
 			desc = modsymbol.join(desc, "grant")
-		var target_texts : String = target.get_description()
+		var target_texts : String = target_group.get_description()
 		if type:
 			target_texts = target_texts.replace("?", "<icon_%s>"%type)
 		elif group:
@@ -793,262 +573,3 @@ class Buff extends EffectComponent:
 			desc = modsymbol.join(desc, "<color_E14A68>Destroys<end> itself afterwards.")
 		return desc.substr(0,1).to_upper() + desc.substr(1)
 
-
-class Condition:
-	const target_types := ["self", "other"]
-	const valid_conditions := ["turns", "symbol_count", "symbol_value", "item", "corner", "edge", "destroyed", "adjacent"]
-	const valid_operators := ["exactly", "at_least", "less_than", "every"]
-	var reels
-	var modsymbol
-	var dict : Dictionary
-	var target := "self"
-	var value : int
-	var invert := false
-	
-	
-	func _init(modsymbol):
-		self.modsymbol = modsymbol
-		reels = modsymbol.modloader.globals.reels
-	
-	
-	func parse(dict : Dictionary):
-		if dict.has("target"):
-			if not dict["target"] in target_types:
-				printerr("EBP ERROR: Given target '%s' is not one of the accepted targets: %s"%[dict["target"], target_types])
-				return
-			else:
-				self.target = dict["target"]
-		
-		if not dict.has("condition"):
-			printerr("EBP ERROR: Requires a condition to be given, skipping...")
-			return
-		elif not dict["condition"] in valid_conditions:
-			printerr("EBP ERROR: Given condition '%s' is not one of the accepted conditions: %s"%[dict["condition"], valid_conditions])
-			return
-		else:
-			match dict["condition"]:
-				"turns", "symbol_count", "symbol_value":
-					if !dict.has("operator"):
-						printerr("EBP ERROR: An operator must be given for the given condition, skipping...")
-					elif not dict["operator"] in valid_operators:
-						printerr("EBP ERROR: Given operator '%s' is not one of the accepted conditions: %s"%[dict["operator"], valid_operators])
-						return
-					if dict["condition"] == "symbol_count" and not dict.has("type") and not dict.has("group"):
-						printerr("EBP ERROR: A type or group must be given for condition 'symbol_count'")
-						return
-				"item":
-					if !dict.has("type"):
-						printerr("EBP ERROR: An item type must be given for condition 'item'")
-						return
-				"adjacent":
-					if !dict.has("type") and !dict.has("group"):
-						printerr("EBP ERROR: A type or group must be given for condition 'adjacent'")
-						return
-		
-		if dict.has("value"):
-			self.value = dict["value"]
-		
-		if dict.has("not"):
-			self.invert = dict["not"]
-		
-		self.dict = dict
-	
-	
-	func check_condition(symbol, effect):
-		var result := false
-		match dict["condition"]:
-			"turns":
-				match dict["operator"]:
-					"exactly":
-						effect = effect.if_property_equals("times_displayed", value)
-					"at_least":
-						effect = effect.if_property_at_least("times_displayed", value)
-					"less_than":
-						effect = effect.if_property_less_than("times_displayed", value)
-					"every":
-						symbol.add_effect(modsymbol.effect().if_property_at_least("times_displayed", value).set_value("times_displayed", 0))
-						effect = effect.if_property_at_least("times_displayed", value).priority()
-				return true
-			
-			"symbol_count":
-				var symbol_count
-				var source := "reels"
-				if dict.has("source"):
-					if dict["source"] in ["reels", "inventory"]:
-						source = dict["source"]
-				if dict.has("type"):
-					symbol_count = modsymbol.count_symbols(source, {"type": dict["type"]})
-				elif dict.has("group"):
-					symbol_count = modsymbol.count_symbols(source, {"group": dict["group"]})
-				else:
-					symbol_count = modsymbol.count_symbols(source)
-				if dict["operator"] == "every":
-					if not dict.has("type") and not dict.has("group"):
-						return false
-					else:
-						result = apply_operator("exactly", symbol_count, modsymbol.count_symbols(source))
-				result = apply_operator(dict["operator"], symbol_count, value)
-			
-			"symbol_value":
-				var compare := "value"
-				if dict.has("value_type"):
-					compare = dict["value_type"] if dict["value_type"] in ["value", "final_value", "value_bonus"] else "value"
-				
-				match dict["operator"]:
-					"exactly":
-						effect = effect.if_property_equals(compare, value)
-					"at_least":
-						effect = effect.if_property_at_least(compare, value)
-					"less_than":
-						effect = effect.if_property_less_than(compare, value)
-					_:
-						return false
-				return true
-			
-			"corner":
-				var top_left = symbol.grid_position.x == 0 and symbol.grid_position.y == 0
-				var top_right = symbol.grid_position.x == reels.reel_width - 1 and symbol.grid_position.y == 0
-				var bottom_left = symbol.grid_position.x == 0 and symbol.grid_position.y == reels.reel_height - 1
-				var bottom_right = symbol.grid_position.x == reels.reel_width - 1 and symbol.grid_position.y == reels.reel_height - 1
-				if not (top_left or top_right or bottom_left or bottom_right):
-					result = true
-			
-			"edge":
-				var left = symbol.grid_position.x == 0 
-				var right = symbol.grid_position.x == reels.reel_width - 1
-				var top = symbol.grid_position.y == 0
-				var bottom = symbol.grid_position.y == reels.reel_height - 1
-				if (left or right or top or bottom):
-					result = true
-			
-			"destroyed":
-				effect = effect.if_destroyed(!invert).if_type(symbol.type).priority()
-				return true
-			
-			"item":
-				if modsymbol.modloader.globals.items.item_types.has(dict["type"]):
-					result = true
-			
-			"adjacent":
-				var operator := "at_least"
-				var finalvalue := value if value else 1
-				var count := 0
-				if dict.has("operator"):
-					operator = dict["operator"]
-				var adjacents : Array = symbol.get_adjacent_icons()
-				if operator == "every":
-					finalvalue = adjacents.size()
-					operator = "at_least"
-				for adjacent in adjacents:
-					if adjacent.type == dict["type"] or dict["group"] in adjacent.groups:
-						count += 1
-				result = apply_operator(operator, count, finalvalue)
-			
-			_:
-				return false
-			
-		if invert:
-			result = !result
-		return result
-	
-	
-	func apply_operator(operator, value, compare):
-		match operator:
-			"exactly":
-				return value == compare
-			"at_least":
-				return value >= compare
-			"less_than":
-				return value < compare
-		return false
-	
-	
-	func get_type_or_group(stringsafe := true, andor := "na"):
-		var result := ""
-		if dict.has("type"):
-			result = dict["type"]
-			if stringsafe:
-				result = "<icon_%s>"%result
-		elif dict.has("group"):
-			if not andor in ["and", "or", "na"]:
-				andor = "na"
-			result = dict["group"]
-			if stringsafe:
-				result = "<all_%s_%s>"%[andor, result]
-		return result
-	
-	
-	func get_description():
-		var a : String
-		var b : String
-		var c : String
-		var d : String
-		var e : String
-		match dict["condition"]:
-			"turns":
-				match dict["operator"]:
-					"exactly":
-						return "nyi"
-					"at_least":
-						return "after <color_E14A68>%s<end> spins"%value
-					"less_than":
-						return "nyi"
-					"every":
-						return "every <color_E14A68>%s<end> spins"%value
-			
-			"symbol_count":
-				a = "is" if value == 1 else "are"
-				b = dict["operator"].replace("_", " ")
-				c = get_type_or_group(true, "or")
-				d = " in your inventory" if dict.has("source") and dict["source"] == "inventory" else ""
-				return "if there %s %s <color_E14A68>%s<end> %s%s"%[a, b, value, c, d]
-			
-			"symbol_value":
-				a = "its" if dict.has("target") and dict["target"] == "other" else "this symbol's"
-				b = dict["operator"].replace("_", " ")
-				c = ""
-				if dict.has("value_type"):
-					match dict["value_type"]:
-						"final_value":
-							c = "value"
-						"value_bonus":
-							c = "bonus value"
-						_:
-							"base value"
-				return "if %s %s is %s %s"%[a, c, b, value]
-			
-			"corner":
-				a = "this symbol" if dict["target"] == "self" else "it"
-				b = " <color_E14A68>not<end>" if invert else ""
-				return "if %s is%s in a corner"%[a, b]
-			
-			"edge":
-				a = "this symbol" if dict["target"] == "self" else "it"
-				b = " <color_E14A68>not<end>" if invert else ""
-				return "if %s is%s on an edge"%[a, b]
-			
-			"destroyed":
-				return "when <color_E14A68>destroyed<end>"
-			
-			"item":
-				a = " do <color_E14A68>not<end>" if invert else ""
-				b = dict["type"]
-				return "if you%s have <icon_%s>"%[a, b]
-			
-			"adjacent":
-				a = " <color_E14A68>not<end>" if invert else ""
-				c = get_type_or_group(true, "or")
-				if dict.has("operator"):
-					match dict["operator"]:
-						"at_least":
-							b = "at least <color_E14A68>%s<end>"%value if value else "0"
-							return "if%s adjacent to %s%s"%[a, b, c]
-						"less_than":
-							b = "fewer than <color_E14A68>%s<end>"%value if value else "0"
-							return "if%s adjacent to %s%s"%[a, b, c]
-						"exactly":
-							b = value if value else "1"
-							return "if%s adjacent to exactly <color_E14A68>%s<end>%s"%[a, b, c]
-						"every":
-							return "if%s surrounded by %s"%[a, c]
-				return "if%s adjacent to %s"%[a, c]
