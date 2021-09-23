@@ -42,7 +42,7 @@ complex symbols in a manner of minutes
 To access the functions provided by this plugin, you must first include the
 abstract base class (ABC) "AbstractSymbol.gd" in each of your modded symbols.
 
-2.i. Adding EBP functions to a modded symbol
+Adding EBP functions to a modded symbol
 ======================================================
 Replace any other inheritance with the following:
 
