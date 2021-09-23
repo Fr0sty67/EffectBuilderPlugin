@@ -53,7 +53,7 @@ class Condition:
 	var reels
 	var modsymbol
 	var target := "self"
-	var value : int
+	var value : float
 	var invert := false
 	var operator : String
 	var valid := false
@@ -117,7 +117,7 @@ class AdjacentCondition extends Condition:
 	func check_condition(symbol, effect, i = null):
 		var result := false
 		var operator := "at_least"
-		var finalvalue := value if value else 1
+		var finalvalue := value if value else 1.0
 		var count := 0
 		var adjacents : Array = symbol.get_adjacent_icons()
 		if operator == "every":
@@ -330,7 +330,7 @@ class PositionCondition extends Condition:
 			if filtered.has(symbol):
 				filtered.erase(symbol)
 		
-		return apply_operator(operator, filtered.size(), value if value >= 0 else 1)
+		return apply_operator(operator, filtered.size(), value if value >= 0 else 1.0)
 	
 	
 	func check_absolute_other(symbol, effect, i, symbols):
@@ -396,7 +396,7 @@ class PositionCondition extends Condition:
 			if filtered.has(symbol):
 				filtered.erase(symbol)
 		
-		return apply_operator(operator, filtered.size(), value if value >= 0 else 1)
+		return apply_operator(operator, filtered.size(), value if value >= 0 else 1.0)
 	
 	
 	func get_description():
@@ -463,7 +463,7 @@ class PositionCondition extends Condition:
 					c = "not <icon_empty>"
 				return "if every %s is %s"%[b, c]
 			else:
-				a = "is" if value == 1 else "are"
+				a = "is" if value == 1.0 else "are"
 				b = operator.replace("_", " ")
 				c = get_type_or_group(self, true, "or")
 				if not c:
@@ -518,7 +518,7 @@ class PositionCondition extends Condition:
 				c = "not <icon_empty>"
 			return "if every %s is %s"%[b, c]
 		else:
-			a = "is" if value == 1 else "are"
+			a = "is" if value == 1.0 else "are"
 			b = operator.replace("_", " ")
 			c = get_type_or_group(self, true, "or")
 			if not c:
@@ -567,7 +567,7 @@ class SymbolCountCondition extends Condition:
 	
 	
 	func get_description():
-		var a : String = "is" if value == 1 else "are"
+		var a : String = "is" if value == 1.0 else "are"
 		var b : String = operator.replace("_", " ")
 		var c : String = get_type_or_group(self, true, "or")
 		var d : String = " in your inventory" if source == "inventory" else ""
@@ -582,7 +582,7 @@ class SymbolValueCondition extends Condition:
 		if !dict.has("operator"):
 			printerr("EBP ERROR: An 'operator' must be given for the given condition")
 			return
-		if !dict.has("value") or (dict.has("value") and not dict["value"] is int):
+		if !dict.has("value") or not float(dict["value"]):
 			printerr("EBP ERROR: An integer 'value' must be given for the given condition")
 			return
 		if dict.has("value_type"):
@@ -628,7 +628,7 @@ class TurnCountCondition extends Condition:
 		if !dict.has("operator"):
 			printerr("EBP ERROR: An 'operator' must be given for the given condition 'turns'")
 			return
-		if !dict.has("value") or (dict.has("value") and not dict["value"] is int):
+		if !dict.has("value") or not float(dict["value"]):
 			printerr("EBP ERROR: An integer 'value' must be given for the given condition 'turns'")
 			return
 		self.valid = true

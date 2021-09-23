@@ -307,7 +307,7 @@ class Transformable extends EffectComponent:
 
 class Destroyer extends EffectComponent:
 	var buff_type := "temporary_bonus"
-	var value := 0
+	var value := 0.0
 	var not_prev := true
 	var symbol_value := false
 	var final_value := true
@@ -317,10 +317,10 @@ class Destroyer extends EffectComponent:
 		pass
 	
 	
-	func set_buff(buff_type : String, value : int, symbol_value := false, final_value := true):
+	func set_buff(buff_type : String, value : float, symbol_value := false, final_value := true):
 		if buff_type in ["temporary_bonus", "temporary_multiplier", "permanent_bonus", "permanent_multiplier"]:
 			self.buff_type = buff_type
-		if value >= 1:
+		if value >= 0:
 			self.value = value
 		self.symbol_value = symbol_value
 		self.final_value = final_value
@@ -359,7 +359,8 @@ class Destroyer extends EffectComponent:
 			
 			for i in symbols:
 				var i_effect = modsymbol.effect(b_effect.effect_dictionary.duplicate(true))
-				i_effect = i_effect.if_type(i.type)
+				if not type and not group:
+					i_effect = i_effect.if_type(i.type)
 				if symbol_value:
 					i_effect.effect_dictionary.erase("diff")
 					i_effect = i_effect.dynamic_symbol_value(i, value, final_value)
@@ -415,7 +416,7 @@ class Destroyer extends EffectComponent:
 
 class Buff extends EffectComponent:
 	var buff_type := "temporary_multiplier"
-	var value := 1
+	var value := 1.0
 	var include_empties := false
 	var symbol_value := false
 	var final_value := false
@@ -431,7 +432,7 @@ class Buff extends EffectComponent:
 		return self
 	
 	
-	func set_value(value : int):
+	func set_value(value : float):
 		if value >= 0:
 			self.value = value
 		return self
