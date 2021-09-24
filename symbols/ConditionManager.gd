@@ -199,9 +199,13 @@ class PositionCondition extends Condition:
 	func _init(modsymbol, dict : Dictionary).(modsymbol):
 		self.position = dict["condition"]
 		
-		if position in ["adjacent", "above", "below", "left", "right", "diagonal"] and dict["target"] == "self":
-			printerr("EBP ERROR: self cannot be '%s' to self; target must be 'other' or 'any'"%position)
-			return
+		if position in ["adjacent", "above", "below", "left", "right", "diagonal"]:
+			if dict.has("target"):
+				if dict["target"] == "self":
+					printerr("EBP ERROR: self cannot be '%s' to self; target must be 'other' or 'any'"%position)
+					return
+			else:
+				dict["target"] = "any"
 		
 		if dict.has("type"):
 			self.type = dict["type"]
