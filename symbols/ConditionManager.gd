@@ -19,8 +19,8 @@ static func parse(modsymbol, dict : Dictionary) -> Condition:
 		return Condition.new(modsymbol)
 	else:
 		match dict["condition"]:
-			"adjacent":
-				condition = AdjacentCondition.new(modsymbol, dict)
+#			"adjacent":
+#				condition = AdjacentCondition.new(modsymbol, dict)
 			"destroyed":
 				condition = DestroyedCondition.new(modsymbol, dict)
 			"item":
@@ -211,14 +211,14 @@ class PositionCondition extends Condition:
 		
 		if dict.has("index"):
 			if position == "row":
-				self.index = dict["index"]
+				self.index = int(dict["index"])
 				if not index in range(reels.reel_height):
-					printerr("EBP ERROR: Invalid index '%s', must be between 0 and %s"%[index, reels.reel_height])
+					printerr("EBP ERROR: Invalid index '%s', must be between 0 and %s"%[index, reels.reel_height-1])
 					return
 			elif position == "column":
-				self.index = dict["index"]
+				self.index = int(dict["index"])
 				if not index in range(reels.reel_width):
-					printerr("EBP ERROR: Invalid index '%s', must be between 0 and %s"%[index, reels.reel_width])
+					printerr("EBP ERROR: Invalid index '%s', must be between 0 and %s"%[index, reels.reel_width-1])
 					return
 		else:
 			if position in ["row", "column"] and dict["target"] == "self":
@@ -240,11 +240,18 @@ class PositionCondition extends Condition:
 				printerr("EBP WARNING: Index is discarded if an relative is true, continuing...")
 				self.index = -1
 		else:
-			if target == "other":
+			if dict["target"] == "other":
 				if position in ["adjacent", "above", "below", "left", "right", "diagonal"]:
 					printerr("EBP ERROR: 'other' cannot be absolute to '%s'"%position)
 					return
-
+		
+		if dict["target"] == "any" or (dict["target"] == "other" and relative):
+			if position in ["adjacent", "above", "below", "left", "right", "diagonal"]:
+				if not dict.has("operator"):
+					dict["operator"] = "at_least"
+				if not dict.has("value"):
+					dict["value"] = 1
+		
 		self.valid = true
 	
 	
