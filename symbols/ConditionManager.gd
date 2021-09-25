@@ -663,10 +663,10 @@ class TurnCountCondition extends Condition:
 	func get_description():
 		match operator:
 			"exactly":
-				return "nyi"
+				return "after exactly <color_E14A68>%s<end> spins"%value
 			"at_least":
 				return "after <color_E14A68>%s<end> spins"%value
 			"less_than":
-				return "nyi"
+				return "if this symbol has appeared fewer than <color_E14A68>%s<end> times"%value
 			"every":
 				return "every <color_E14A68>%s<end> spins"%value
