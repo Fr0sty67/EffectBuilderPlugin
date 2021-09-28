@@ -204,6 +204,9 @@ class Spawnable extends EffectComponent:
 					if not condition.check_condition(symbol, effect):
 						return
 		
+		if consumes_self:
+			effect = effect.set_destroyed()
+		
 		symbol.add_effect(effect)
 	
 	
@@ -343,7 +346,7 @@ class Destroyer extends EffectComponent:
 	
 	
 	func construct(effect, symbol, adjacent):
-		effect.set_destroyed()
+		effect = effect.set_destroyed()
 		effect.effect_dictionary.unique_id = uk
 		
 		if type:
@@ -694,6 +697,9 @@ class Raritymodifier extends EffectComponent:
 				final_value
 			)
 			symbol.add_effect(i_effect)
+		
+		if consumes_self:
+			symbol.add_effect(modsymbol.effect().set_destroyed())
 	
 	
 	func get_description():

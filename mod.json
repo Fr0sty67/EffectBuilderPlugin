@@ -1,6 +1,6 @@
 {
     "id": "effects-builder-plugin",
-    "version": "1.2.6",
+    "version": "1.2.7",
     "authors": ["Pudge"],
     "name": "Effects Builder Plugin for LbaL",
     "description": "A simpler effects builder for effects and their descriptions",
