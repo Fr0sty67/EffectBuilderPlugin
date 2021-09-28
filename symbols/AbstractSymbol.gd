@@ -6,6 +6,7 @@ var destroys : Array = [] # of Destroyer
 var adds : Array = [] # of Spawnables
 var buffs : Array = [] # of Buff
 var transforms : Array = [] # of Transformable
+var raritymods : Array = [] # of Raritymod
 var flavor_text : String
 
 
@@ -16,6 +17,9 @@ func init(modloader: Reference, params):
 
 func get_description():
 	var desc = ""
+	if raritymods:
+		for i in raritymods:
+			desc = join(desc, i.get_description())
 	if buffs:
 		for i in buffs:
 			desc = join(desc, i.get_description())
@@ -36,6 +40,10 @@ func get_flavor_text():
 
 
 func add_conditional_effects(symbol, adjacent):
+	if raritymods:
+		for i in raritymods:
+			i.construct(effect(), symbol, adjacent)
+	
 	if destroys:
 		for i in destroys:
 			i.construct(effect(), symbol, adjacent)
@@ -57,6 +65,10 @@ func add_conditional_effects(symbol, adjacent):
 				printerr("EBP ERROR: Must supply either type or group to spawn symbols, skipping...")
 				return
 			i.construct(effect(), symbol, adjacent)
+
+
+func raritymod():
+	return cbldr.Raritymodifier.new(self)
 
 
 func destroy():

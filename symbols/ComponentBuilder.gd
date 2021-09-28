@@ -9,6 +9,7 @@ class EffectComponent:
 	var group : String
 	var target_group
 	var targets : int
+	var redirect := false
 	var random_targeting := true
 	var animation : String
 	var sfx_index : int = 0
@@ -30,6 +31,11 @@ class EffectComponent:
 	
 	func set_group(group : String):
 		self.group = group
+		return self
+	
+	
+	func redirect():
+		self.redirect = true
 		return self
 	
 	
@@ -111,6 +117,9 @@ class EffectComponent:
 				if animation:
 					i_effect = i_effect.animate(animation, sfx_index, modsymbol.merge([symbol], [i]))
 			
+			if not group and not type:
+				i_effect = i_effect.if_type(i.type)
+			print(i_effect.effect_dictionary)
 			symbol.add_effect_for_symbol(i, i_effect)
 		
 		if (consumes_self or simultaneous) and ani_arr.size() > 0:
@@ -138,11 +147,12 @@ class Spawnable extends EffectComponent:
 	var quantity := 1
 	var new_type : String
 	var new_group : String
-	var min_rarity := ""
+	var min_rarity := "common"
+	var uk
 	
 	
 	func _init(modsymbol).(modsymbol):
-		pass
+		self.uk = modsymbol.adds.size()
 	
 	
 	func set_quantity(quantity : int):
@@ -170,6 +180,9 @@ class Spawnable extends EffectComponent:
 	
 	
 	func construct(effect, symbol, adjacent):
+		effect = effect.if_type(symbol.type)
+		effect.effect_dictionary.unique_id = uk
+		
 		if not new_type and not new_group:
 			printerr("EBP ERROR: Spawning requires either a symbol type or group, skipping...")
 			return effect
@@ -196,7 +209,7 @@ class Spawnable extends EffectComponent:
 	
 	func get_description():
 		var desc : String = .get_description()
-		if random_index >= 0:
+		if desc != "":
 			desc = modsymbol.join(desc, "<color_E14A68>add")
 		else:
 			desc = "<color_E14A68>Adds"
@@ -223,7 +236,7 @@ class Transformable extends EffectComponent:
 	var include_empties := false
 	var new_type : String
 	var new_group : String
-	var min_rarity := ""
+	var min_rarity := "common"
 	
 	
 	func _init(modsymbol).(modsymbol):
@@ -442,6 +455,7 @@ class Buff extends EffectComponent:
 		self.symbol_value = true
 		return self
 	
+	
 	func final():
 		self.final_value = true
 		return self
@@ -502,6 +516,9 @@ class Buff extends EffectComponent:
 				if !check_passed:
 					continue
 			
+			if redirect:
+				i_effect = i_effect.set_target(symbol)
+			
 			if symbol_value:
 				i_effect.effect_dictionary.erase("diff")
 				i_effect = i_effect.dynamic_symbol_value(i, value, final_value)
@@ -531,18 +548,21 @@ class Buff extends EffectComponent:
 				l_effect = l_effect.set_destroyed()
 			symbol.add_effect_for_symbol(symbol, l_effect)
 	
+	
 	func get_description():
 		var desc : String = .get_description()
 		if random_index >= 0:
 			desc = modsymbol.join(desc, "grant")
-		var target_texts : String = target_group.get_description()
-		if type:
-			target_texts = target_texts.replace("?", "<icon_%s>"%type)
-		elif group:
-			target_texts = target_texts.replace("?", "<all_and_%s>"%group)
-		else:
-			target_texts = target_texts.replace("?", "symbols")
-		desc = modsymbol.join(desc, target_texts)
+		var target_texts : String
+		if !redirect:
+			target_texts = target_group.get_description()
+			if type:
+				target_texts = target_texts.replace("?", "<icon_%s>"%type)
+			elif group:
+				target_texts = target_texts.replace("?", "<all_and_%s>"%group)
+			else:
+				target_texts = target_texts.replace("?", "symbols")
+			desc = modsymbol.join(desc, target_texts)
 		if buff_type in ["permanent_bonus", "permanent_multiplier"]:
 			desc = modsymbol.join(desc, "permanently")
 		if target_texts == "":
@@ -561,6 +581,23 @@ class Buff extends EffectComponent:
 				desc = modsymbol.join(desc, "<icon_coin><color_FBF236>%s<end> more"%value)
 			else:
 				desc = modsymbol.join(desc, "<color_E14A68>%sx<end> more <icon_coin>"%value)
+		if redirect:
+			target_texts = target_group.get_description()
+			var remove_other := false
+			if type:
+				target_texts = target_texts.replace("?", "<icon_%s>"%type)
+				if type != modsymbol.type:
+					remove_other = true
+			elif group:
+				target_texts = target_texts.replace("?", "<all_and_%s>"%group)
+				if not group in modsymbol.groups:
+					remove_other = true
+			else:
+				target_texts = target_texts.replace("?", "symbol")
+			target_texts = target_texts.replace("all ", "")
+			if remove_other:
+				target_texts = target_texts.replace("other ", "")
+			desc = modsymbol.join(desc, "for each %s"%target_texts)
 		if conditions:
 			var conditions_text := ""
 			for condition in conditions:
@@ -574,3 +611,138 @@ class Buff extends EffectComponent:
 			desc = modsymbol.join(desc, "<color_E14A68>Destroys<end> itself afterwards.")
 		return desc.substr(0,1).to_upper() + desc.substr(1)
 
+
+class Raritymodifier extends EffectComponent:
+	var popup
+	var value : float
+	var rarity_list := ["uncommon", "rare", "very_rare"]
+	var decrease := false
+	
+	
+	func _init(modsymbol).(modsymbol):
+		popup = modsymbol.modloader.globals.pop_up
+		type = "symbols"
+	
+	
+	func set_type(type : String):
+		if type in ["symbols", "items"]:
+			self.type = type
+		if type in ["symbol", "item"]:
+			self.type = type + "s"
+		return self
+	
+	
+	func set_value(value : float):
+		self.value = value
+		return self
+	
+	
+	func decrease():
+		self.decrease = true
+		return self
+	
+	
+	func set_rarities(arr : Array):
+		rarity_list.clear()
+		var uncommon := 0
+		var rare := 0
+		var very_rare := 0
+		for i in arr:
+			if i == "uncommon":
+				uncommon += 1
+			elif i == "rare":
+				rare += 1
+			elif i == "very_rare" or i == "very rare":
+				very_rare += 1
+			else:
+				printerr("EBP ERROR: Unknown rarity '%s'"%i)
+		
+		if uncommon >= 1:
+			rarity_list.push_back("uncommon")
+		if rare >= 1:
+			rarity_list.push_back("rare")
+		if very_rare >= 1:
+			rarity_list.push_back("very_rare")
+		return self
+	
+	
+	func construct(effect, symbol, adjacent):
+		effect = effect.if_type(symbol.type)
+		
+		if conditions:
+			for condition in conditions:
+				if condition.target in ["self", "any"]:
+					if not condition.check_condition(symbol, effect):
+						return
+		
+		
+		var final_value : float = 1.0 + (1.0 - min(value, 2.0)) if decrease else value
+		
+		
+		for rarity in rarity_list:
+			var i_effect = modsymbol.effect(effect.effect_dictionary.duplicate(true))
+			add_rarity_bonus(
+				i_effect,
+				rarity,
+				popup.rarity_bonuses["symbols"] if type == "symbols" else popup.rarity_bonuses["items"],
+				final_value
+			)
+			symbol.add_effect(i_effect)
+	
+	
+	func get_description():
+		var desc : String
+		
+		var conj := " and "
+		if decrease and value >= 2:
+			desc = "You cannot find"
+			conj = " or "
+		else:
+			desc = "You are <color_E14A68>%sx<end> %s likely to find"%[value, "less" if decrease else "more"]
+		
+		var rarity_texts := []
+		
+		if rarity_list.has("uncommon"):
+			rarity_texts.push_back("<color_38769A>Uncommon<end>")
+		
+		if rarity_list.has("rare"):
+			rarity_texts.push_back("<color_F8F87B>Rare<end>")
+		
+		if rarity_list.has("very_rare"):
+			rarity_texts.push_back("<color_4A1369>Very Rare<end>")
+		
+		if !rarity_texts:
+			printerr("EBP ERROR: no rarities given")
+			return ""
+		
+		desc = modsymbol.join(desc, rarity_texts[0])
+		match rarity_texts.size():
+			1:
+				pass
+			2:
+				desc = modsymbol.join(desc, rarity_texts[1], conj)
+			3:
+				desc = modsymbol.join(desc, rarity_texts[1], ", ")
+				desc = modsymbol.join(desc, rarity_texts[2], conj)
+		
+		desc = modsymbol.join(desc, type)
+		if conditions:
+			var conditions_text := ""
+			for condition in conditions:
+				if !conditions_text:
+					conditions_text = condition.get_description()
+				else:
+					conditions_text += " and " + condition.get_description()
+			desc = modsymbol.join(desc, conditions_text)
+		return desc + "."
+	
+	
+	func add_rarity_bonus(effect, rarity, source, final_val):
+		effect.effect_dictionary.target = source
+		effect.effect_dictionary.multiply = true
+		effect.effect_dictionary.value_to_change = rarity
+		effect.effect_dictionary.diff = final_val
+		effect.effect_dictionary.raritymod = true
+		effect.effect_dictionary.erase("items_to_add")
+		effect.effect_dictionary.erase("tiles_to_add")
+		effect.effect_dictionary.erase("sub_effects")
