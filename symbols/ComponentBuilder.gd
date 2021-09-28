@@ -17,6 +17,7 @@ class EffectComponent:
 	var random_index := -1
 	var consumes_self := false
 	var conditions := [] # of conditions
+	var uk : String
 	
 	
 	func _init(modsymbol):
@@ -119,7 +120,7 @@ class EffectComponent:
 			
 			if not group and not type:
 				i_effect = i_effect.if_type(i.type)
-			print(i_effect.effect_dictionary)
+			
 			symbol.add_effect_for_symbol(i, i_effect)
 		
 		if (consumes_self or simultaneous) and ani_arr.size() > 0:
@@ -148,11 +149,10 @@ class Spawnable extends EffectComponent:
 	var new_type : String
 	var new_group : String
 	var min_rarity := "common"
-	var uk
 	
 	
 	func _init(modsymbol).(modsymbol):
-		self.uk = modsymbol.adds.size()
+		self.uk = "add" + str(modsymbol.adds.size())
 	
 	
 	func set_quantity(quantity : int):
@@ -240,7 +240,7 @@ class Transformable extends EffectComponent:
 	
 	
 	func _init(modsymbol).(modsymbol):
-		pass
+		self.uk = "transform" + str(modsymbol.transforms.size())
 	
 	
 	func empties():
@@ -263,6 +263,8 @@ class Transformable extends EffectComponent:
 		if not new_type and not new_group:
 			printerr("EBP ERROR: Transforms requires either a symbol type or group, skipping...")
 			return
+		
+		effect.effect_dictionary.unique_id = uk
 		
 		if type:
 			effect = effect.if_type(type)
@@ -327,7 +329,7 @@ class Destroyer extends EffectComponent:
 	
 	
 	func _init(modsymbol).(modsymbol):
-		pass
+		self.uk = "destroy" + str(modsymbol.destroys.size())
 	
 	
 	func set_buff(buff_type : String, value : float, symbol_value := false, final_value := true):
@@ -342,6 +344,7 @@ class Destroyer extends EffectComponent:
 	
 	func construct(effect, symbol, adjacent):
 		effect.set_destroyed()
+		effect.effect_dictionary.unique_id = uk
 		
 		if type:
 			effect = effect.if_type(type, not_prev)
@@ -436,7 +439,7 @@ class Buff extends EffectComponent:
 	
 	
 	func _init(modsymbol).(modsymbol):
-		pass
+		self.uk = "buff" + str(modsymbol.buffs.size())
 	
 	
 	func set_buff_type(buff_type : String):
@@ -466,6 +469,7 @@ class Buff extends EffectComponent:
 	
 	
 	func construct(effect, symbol, adjacent):
+		effect.effect_dictionary.unique_id = uk
 		match buff_type:
 			"temporary_bonus":
 				effect = effect.change_value_bonus(value)
@@ -622,6 +626,7 @@ class Raritymodifier extends EffectComponent:
 	func _init(modsymbol).(modsymbol):
 		popup = modsymbol.modloader.globals.pop_up
 		type = "symbols"
+		self.uk = "raritymod" + str(modsymbol.raritymods.size())
 	
 	
 	func set_type(type : String):
@@ -668,6 +673,7 @@ class Raritymodifier extends EffectComponent:
 	
 	func construct(effect, symbol, adjacent):
 		effect = effect.if_type(symbol.type)
+		effect.effect_dictionary.unique_id = uk
 		
 		if conditions:
 			for condition in conditions:
