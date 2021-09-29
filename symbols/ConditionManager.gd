@@ -649,14 +649,20 @@ class TurnCountCondition extends Condition:
 		var result
 		match operator:
 			"exactly":
-				effect = effect.if_property_equals("times_displayed", value)
+				if symbol.times_displayed != value:
+					return false
 			"at_least":
-				effect = effect.if_property_at_least("times_displayed", value)
+				if symbol.times_displayed < value:
+					return false
 			"less_than":
-				effect = effect.if_property_less_than("times_displayed", value)
+				if symbol.times_displayed >= value:
+					return false
 			"every":
-				symbol.add_effect(modsymbol.effect().if_property_at_least("times_displayed", value).set_value("times_displayed", 0))
-				effect = effect.if_property_at_least("times_displayed", value).priority()
+				if symbol.times_displayed == value:
+					symbol.add_effect(modsymbol.effect().set_value("times_displayed", 0))
+					return true
+				else:
+					return false
 		return true
 	
 	
